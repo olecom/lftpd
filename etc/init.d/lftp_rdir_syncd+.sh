@@ -1,6 +1,7 @@
 #!/bin/sh
 #нелья копировать и запускать с папками не на латинке!!!
 # v000 2012-07-10,11,12 `lftpd` a kind of master<->slave file sync daemon
+# v001 2012-07-12 testing loop
 
 set -e
 #exec 1>>"log" 2>&1 && set -x && echo "$*" #debug
@@ -81,6 +82,8 @@ printf "$@" >&7
 Managing daemon under \"$OSTYPE\"..."
 CHB='\033[1m'
 CHE='\033[0m'
+CB='\033[0;1;41m'
+CE='\033[0;40m'
 }
 [ -d "$APPLOGS" ] || {
 	mkdir -p "$APPLOGS"
@@ -122,10 +125,11 @@ rm go
 !sh ../etc/rename_files_pre.sh $DATAEXT $PREEXT || exit
 mput -c -E *$DATAEXT$PREEXT
 source rename_remote_norm.lftp
+!rm rename_remote_norm.lftp
 "
-#!rm rename_remote_norm.lftp
-[ -e '../etc/rename_files_pre.sh' ] || echo '#exec 2>put_debug	
+echo '#exec 2>put_debug
 set -e -x
+{
 for f in *$1
 do case $f in
 	"*"*) # no DATAEXT files, list DATAEXT PREEXT prefixed, if any
@@ -141,7 +145,10 @@ do case $f in
 		echo "mv $f$2 $f"
 	;;
 	esac
-done >rename_remote_norm.lftp
+done
+[ -e og ] || echo loop>og
+echo "put og;!rm og"
+}>rename_remote_norm.lftp
 '>'../etc/rename_files_pre.sh'
 		else con="
 repeat --until-ok -d $SYNCTIME get -c og && echo get_ok
@@ -149,7 +156,7 @@ repeat --until-ok -d $SYNCTIME get -c og && echo get_ok
 repeat --until-ok -d $SYNCTIME mget -c -E *$DATAEXT
 rm og
 !sh ../../etc/run.sh $LAPP
-"   ;   DDIR=$IDIR
+" #  ;   DDIR=$IDIR !!testing
 #!sh start\ ../../_start_stop_status.wsf
 #!sh $LAPP
 		fi
@@ -214,7 +221,8 @@ cancel '$1'
 		echo "$CHPID" >"pid.$APP"
 		_con "$CHB
 $CHPID is pid of running daemon, saved in file: pid.$APP$CHE
-	
+
+${CB}Окно не закрывать до выполнения 'stop'a!!!$CE
 "
 	}
 ;;
