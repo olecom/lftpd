@@ -2,6 +2,7 @@
 #нелья копировать и запускать с папками не на латинке!!!
 # v000 2012-07-10,11,12 `lftpd` a kind of master<->slave file sync daemon
 # v001 2012-07-12 testing loop
+# v002 2012-08-22 testing + production: APP config selection
 
 set -e
 #exec 1>>"log" 2>&1 && set -x && echo "$*" #debug
@@ -127,7 +128,8 @@ mput -c -E *$DATAEXT$PREEXT
 source rename_remote_norm.lftp
 !rm rename_remote_norm.lftp
 "
-echo '#exec 2>put_debug
+[ 'testing' = "$APP" ] && TESTING='[ -e og ] || echo loop>og ; echo "put og;!rm og"'
+[ -e '../etc/rename_files_pre.sh' ] || echo '#exec 2>put_debug
 set -e -x
 {
 for f in *$1
@@ -146,8 +148,7 @@ do case $f in
 	;;
 	esac
 done
-[ -e og ] || echo loop>og
-echo "put og;!rm og"
+'"$TESTING"'
 }>rename_remote_norm.lftp
 '>'../etc/rename_files_pre.sh'
 		else con="
@@ -156,9 +157,7 @@ repeat --until-ok -d $SYNCTIME get -c og && echo get_ok
 repeat --until-ok -d $SYNCTIME mget -c -E *$DATAEXT
 rm og
 !sh ../../etc/run.sh $LAPP
-" #  ;   DDIR=$IDIR !!testing
-#!sh start\ ../../_start_stop_status.wsf
-#!sh $LAPP
+"   ;  [ 'testing' = "$APP" ] || DDIR=$IDIR
 		fi
 		i=$1
 		while [ "$i" -gt 0 ] # a kind of keep alive
