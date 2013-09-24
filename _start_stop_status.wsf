@@ -1,0 +1,102 @@
+<package><job id="lftpd-management"><script language="JScript">
+	jsapp_name = 'Синхронизация директорий lftpd'
+
+	function jsapp(cmd){
+		return 'bin\\sh.exe -c "/etc/init.d/lftp_rdir_syncd+.sh ./app.conf ' + cmd + '"'
+	}
+	function run(cmd, opts, two){
+		//return WshShell.Run(cmd, opts, two)
+		return WshShell.Exec(cmd).Status
+	}
+	var WshShell = WScript.CreateObject("WScript.Shell"),
+	    msg = jsapp_name + " process management start",
+		r
+	{
+		var args = WScript.Arguments;
+		if (0 < args.length){
+			if ("1" == args(0)) {
+				r = WshShell.Popup(
+"Подготовка к управлению набором программ для обеспечения работы " + jsapp_name + "..."
+				,5, msg, 64 + 0)
+			}
+			WScript.Quit(0)
+		}
+		WshShell.Run("wscript \""+WScript.ScriptFullName+"\" \"1\"", 1, !true)
+	}
+
+	r = run(jsapp('stat'), 7, true)
+
+if (0 != r) {
+	r = WshShell.Popup(
+"Запустить " + jsapp_name + "?\n\n" +
+
+"         [Да/Yes] -- запустить                         [Нет/No] -- не нужно\n\n" +
+
+"слежение за тем, что программы работают осуществляется раз в 7 секунд\n" +
+"если программа прекращает работу, появится диалоговое окно с информацией к действию\n"+
+"`lftpd`: не возможно получить статус."
+, 0, msg, 32 + 4)
+	if (6 != r) {
+		WshShell.Popup(jsapp_name + " не запускалось.", 11, msg, 48 + 0)
+		WScript.Quit (1)
+	}
+
+	r = run(jsapp('start'), 7, true)
+	WshShell.Popup(
+"Запуск `app start` осуществлён.\n\n" +
+"Выходной статус `lftpd` = " + r + 
+(0 == r ? " OK " : " Проблемы (см. в лог)"), 11, msg, 48 + 0)
+	/*if (1 !== r)
+		WshShell.Run('http://localhost:3002', 1, !true)*/
+} else {
+	r = WshShell.Popup(
+jsapp_name + " запущена. Статус `lftpd`: OK.\n\n" +
+
+"Перезапустить или остановить?\n\n" +
+
+"[Да/Yes] -- перезапустить [Нет/No] -- остановить [Отмена/Cancel] -- ничего не делать."
+, 0, msg, 32 + 3)
+	if (2 == r)
+		WScript.Quit(0)
+
+	if (1 != run(jsapp('stop'), 7, true) && 6 == r ) {
+		r = run(jsapp('start'), 7, true)
+	
+		WshShell.Popup(
+"Запуск `app stop ; app start` осуществлён.\n\n" +
+"Выходной статус `lftpd` = " + r + 
+(0 == r ? " OK" : r != 1 ? " OK?" : " Проблемы (см. в лог)")
+		, 11, msg, 48 + 0)
+	}
+	
+	WScript.Quit(0)
+}
+
+	msg = jsapp_name + " process management watchdog"
+	do {
+		r = run(jsapp('stat'), 7, true)
+		if (0 != r) {
+			r = WshShell.Popup(
+"`lftpd`: не возможно получить статус. Была принудительная остановка или прога \"упала\".\n\n"+
+
+"Перезапустить?\n\n" +
+
+"[Да/Yes] -- перезапустить [Нет/No] -- не нужно [Отмена/Cancel] -- прекратить слежение."
+			, 0, msg, 32 + 3)
+			if (6 == r) {
+				r = run(jsapp('start'), 7, true)
+				WshShell.Popup(
+"Запуск `app start` осуществлён.\n\n" +
+"Выходной статус `lftpd` = " + r + 
+(0 == r ? " OK" : r != 1 ? " OK?" : " Проблемы (см. в logs)")
+				, 11, msg, 48 + 0)
+			} else if (2 == r) {
+				WshShell.Popup(
+"Слежение за процессами " + jsapp_name + " перкращено.",
+				11, msg, 48 + 0)
+				break
+			}
+		}
+		WScript.Sleep(7777)
+	} while(1)
+</script></job></package>
