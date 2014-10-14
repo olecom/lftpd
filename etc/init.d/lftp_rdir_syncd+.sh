@@ -3,6 +3,9 @@
 # v000 2012-07-10,11,12 `lftpd` a kind of master<->slave file sync daemon
 # v001 2012-07-12 testing loop
 # v002 2012-08-22 testing + production: APP config selection
+# v003 2013-04-19 cygwinizm: `ps -W` -> $PS_OPTS
+#                 bashizm in `test`: "==",
+#                 dashizm: `kill -TERM -- $opt` -> `kill $opt` (simple is better)
 
 set -e
 #exec 1>>"log" 2>&1 && set -x && echo "$*" #debug
@@ -42,6 +45,7 @@ exit "$1"
 case "$OSTYPE" in
 *cygwin*) # OSTYPE=cygwin in `bash`
 	LD_LIBRARY_PATH='/bin:/bin.w32'
+	PS_OPTS='-W -s'
 	PATH="/bin:/bin.w32:$PATH"
 	_start(){
 	cmd /C start "$@"
@@ -50,6 +54,7 @@ case "$OSTYPE" in
 *linux_gnu* | *)
 	OSTYPE=linux-gnu
 	LD_LIBRARY_PATH="/usr/local/bin:$LD_LIBRARY_PATH"
+	PS_OPTS='-eo pid,comm'
 	case "$PATH" in
 	  *"/usr/local/bin"*) ;;
 	  *) PATH="/usr/local/bin:$PATH" ;;
@@ -95,7 +100,7 @@ CE='\033[0;40m'
 do_sync(){
 set +e
 SPWD=$PWD
-trap "echo 'unexpected script error' > error
+trap "echo 'unexpected script error' > lftpd_error
 	rm -f ../pid.$APP
 " 0
 trap "
@@ -199,13 +204,13 @@ fi
      _con "is starting...
 "
 	[ -f "pid.$APP" ] && {
-		[ 'console' == "$APPSTART" ] || _exit 2
+		[ 'console' = "$APPSTART" ] || _exit 2
 		_err "
 pid.$APP file is here, must 'stop' process first
 "
 		_con "stop and start(y/n)?"
 		read YES && {
-			[ 'y' == "$YES" ] && {
+			[ 'y' = "$YES" ] && {
 				set -- '' 'stop' "$@"
 			} || {
 				_con "
@@ -228,12 +233,12 @@ ${CB}Окно не закрывать до выполнения 'stop'a!!!$CE
 'stop')# =========
 
 	[ -f "pid.$APP" ] || {
-		[ 'console' == "$APPSTART" ] || _exit 3
+		[ 'console' = "$APPSTART" ] || _exit 3
 		_err "
 
 No file pid.$APP found, nothing to 'stop', clearing 'lftp' anyway.
 "
-		opt=`ps -W -s | sed -n '
+		opt=`ps $PS_OPTS | sed -n '
 /lftp[[:blank:]]*$/s/^[[:blank:]]*\([[:digit:]]*\).*$/\1/p
 '`
 		if [ "$opt" ]
@@ -244,7 +249,7 @@ No file pid.$APP found, nothing to 'stop', clearing 'lftp' anyway.
 waitng for 'go' to be done
 " && sleep 1
 			done
-			kill -TERM -- $opt || :
+			kill $opt || :
 		fi
 		_exit 3
 	}
@@ -257,9 +262,9 @@ About to kill pid.$APP=$CHPID, continue (y/n)? \033[0m"
 		read YES || _exit 4
 	else YES='y'
 	fi
-	if [ 'y' == "$YES" ]
+	if [ 'y' = "$YES" ]
 	then kill $CHPID || :
-		opt=`ps -W -s | sed -n '
+		opt=`ps $PS_OPTS | sed -n '
 /lftp[[:blank:]]*$/s/^[[:blank:]]*\([[:digit:]]*\).*$/\1/p
 '`
 		if [ "$opt" ]
@@ -270,7 +275,7 @@ About to kill pid.$APP=$CHPID, continue (y/n)? \033[0m"
 waitng for 'go' and 'og' to be done
 " && sleep 1
 			done
-			kill -TERM -- $opt || :
+			kill $opt || :
 		fi
 	else _exit 0
 	fi
