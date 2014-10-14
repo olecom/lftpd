@@ -124,6 +124,10 @@ set net:reconnect-interval-base 4
 set net:reconnect-interval-multiplier 1
 set xfer:disk-full-fatal true
 set xfer:clobber on'
+        # remote side has only way to know if files are complete
+        # it is if file extention equals $DATAEXT;
+        # thus rename files before upload and protect incomplete files
+        # rename them back when upload has ended
 		if [ 'local' = "$2" ]
 		then con="
 repeat --until-ok -d $SYNCTIME put -E go && echo put_ok
@@ -156,6 +160,10 @@ done
 '"$TESTING"'
 }>rename_remote_norm.lftp
 '>'../etc/rename_files_pre.sh'
+        # remote files are downloaded without renaming
+        # this is because after operation is complete
+        # `run.sh $LAPP` is called which is signal for
+        # local app to scan directory and use $DATAEXT files
 		else con="
 repeat --until-ok -d $SYNCTIME get -c og && echo get_ok
 !rm og
