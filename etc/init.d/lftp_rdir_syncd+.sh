@@ -44,24 +44,24 @@ exit "$1"
 
 case "$OSTYPE" in
 *cygwin*) # OSTYPE=cygwin in `bash`
-	LD_LIBRARY_PATH='/bin:/bin.w32'
-	PS_OPTS='-W -s'
-	PATH="/bin:/bin.w32:$PATH"
-	_start(){
-	cmd /C start "$@"
-	}
+    LD_LIBRARY_PATH='/bin:/bin.w32'
+    PS_OPTS='-W -s'
+    PATH="/bin:/bin.w32:$PATH"
+    _start(){
+    cmd /C start "$@"
+    }
 ;;
 *linux_gnu* | *)
-	OSTYPE=linux-gnu
-	LD_LIBRARY_PATH="/usr/local/bin:$LD_LIBRARY_PATH"
-	PS_OPTS='-eo pid,comm'
-	case "$PATH" in
-	  *"/usr/local/bin"*) ;;
-	  *) PATH="/usr/local/bin:$PATH" ;;
-	esac
-	_start(){
-	"$@"
-	}
+    OSTYPE=linux-gnu
+    LD_LIBRARY_PATH="/usr/local/bin:$LD_LIBRARY_PATH"
+    PS_OPTS='-eo pid,comm'
+    case "$PATH" in
+      *"/usr/local/bin"*) ;;
+      *) PATH="/usr/local/bin:$PATH" ;;
+    esac
+    _start(){
+    "$@"
+    }
 ;;
 esac
 
@@ -92,8 +92,8 @@ CB='\033[0;1;41m'
 CE='\033[0;40m'
 }
 [ -d "$APPLOGS" ] || {
-	mkdir -p "$APPLOGS"
-	[ 'console' = "$APPSTART" ] && echo "Created logs dir: $APPLOGS"
+    mkdir -p "$APPLOGS"
+    [ 'console' = "$APPSTART" ] && echo "Created logs dir: $APPLOGS"
 }
 
 #### ====  main sync stuff ==== ####
@@ -101,7 +101,7 @@ do_sync(){
 set +e
 SPWD=$PWD
 trap "echo 'unexpected script error' > lftpd_error
-	rm -f ../pid.$APP
+    rm -f ../pid.$APP
 " 0
 trap "
 set +e
@@ -110,12 +110,12 @@ rm -f \"${SPWD}pid.$APP\"
 _con 'Teminating \`lftpd\`
 '
 exit 0" 0
-	[ -d "$DDIR" ] || mkdir -p "$DDIR"
+    [ -d "$DDIR" ] || mkdir -p "$DDIR"
 
-	_lftpd(){
+    _lftpd(){
 #$1 -- 2's power = number of connections; $2 -- 'local' if upsync
 #debug 777 -o debug.txt
-		opt='
+        opt='
 set cmd:interactive false
 set net:timeout 4
 set cmd:long-running 4
@@ -128,8 +128,8 @@ set xfer:clobber on'
         # it is if file extention equals $DATAEXT;
         # thus rename files before upload and protect incomplete files
         # rename them back when upload has ended
-		if [ 'local' = "$2" ]
-		then con="
+        if [ 'local' = "$2" ]
+        then con="
 repeat --until-ok -d $SYNCTIME put -E go && echo put_ok
 rm go
 !sh ../etc/rename_files_pre.sh $DATAEXT $PREEXT || exit
@@ -143,19 +143,19 @@ set -e -x
 {
 for f in *$1
 do case $f in
-	"*"*) # no DATAEXT files, list DATAEXT PREEXT prefixed, if any
-		for f in *$1$2
-		do  case $f in
-			"*"*) exit 1;;
-			*) echo "mv $f ${f%$2}";;
-			esac
-		done
-		exit
-	;;
-	*)	mv "$f" "$f$2"
-		echo "mv $f$2 $f"
-	;;
-	esac
+    "*"*) # no DATAEXT files, list DATAEXT PREEXT prefixed, if any
+        for f in *$1$2
+        do  case $f in
+            "*"*) exit 1;;
+            *) echo "mv $f ${f%$2}";;
+            esac
+        done
+        exit
+    ;;
+    *)	mv "$f" "$f$2"
+        echo "mv $f$2 $f"
+    ;;
+    esac
 done
 '"$TESTING"'
 }>rename_remote_norm.lftp
@@ -164,40 +164,40 @@ done
         # this is because after operation is complete
         # `run.sh $LAPP` is called which is signal for
         # local app to scan directory and use $DATAEXT files
-		else con="
+        else con="
 repeat --until-ok -d $SYNCTIME get -c og && echo get_ok
 !rm og
 repeat --until-ok -d $SYNCTIME mget -c -E *$DATAEXT
 rm og
 !sh ../../etc/run.sh $LAPP
 "   ;  [ 'testing' = "$APP" ] || DDIR=$IDIR
-		fi
-		i=$1
-		while [ "$i" -gt 0 ] # a kind of keep alive
-		do i=$(($i-1)) ; con=$con$con
-		done
-		while [ -e "${SPWD}pid.$APP" ] && sleep 1
-		do lftp -e "$opt$con" -u "$RDIRLOGIN" "$RDIRHOSTN$DDIR" || _con "lftp error code: $?
+        fi
+        i=$1
+        while [ "$i" -gt 0 ] # a kind of keep alive
+        do i=$(($i-1)) ; con=$con$con
+        done
+        while [ -e "${SPWD}pid.$APP" ] && sleep 1
+        do lftp -e "$opt$con" -u "$RDIRLOGIN" "$RDIRHOSTN$DDIR" || _con "lftp error code: $?
 "
-		done 1>&2 #!debug
-	}
-	cd "$DDIR" && _con "cd $DDIR
+        done 1>&2 #!debug
+    }
+    cd "$DDIR" && _con "cd $DDIR
 "
-	_lftpd 4 local & # local to remote `mput`
-	cd "$SPWD"
-	cd "$IDIR" && _con "cd $IDIR
+    _lftpd 4 local & # local to remote `mput`
+    cd "$SPWD"
+    cd "$IDIR" && _con "cd $IDIR
 "
-	#set -x +e || : debug
-	_lftpd 4 & # remote to local `mget`
-	while sleep 77
-	do echo "running $2" # just keep pid.$APP active
-	done
+    #set -x +e || : debug
+    _lftpd 4 & # remote to local `mget`
+    while sleep 77
+    do echo "running $2" # just keep pid.$APP active
+    done
 }
 ##### ==== start stop manager ==== ####
 while [ "$*" ] # run one `app` per config
 do if [ 'console' = "$APPSTART" ]
 then exec   8>>"$APPLOGS/${APP}.log" 7>&1
-	_con 7>&8 "
+    _con 7>&8 "
 @[`_date`] console cmd=$1 app=$APP
 "
 else case "$1" in
@@ -205,101 +205,101 @@ else case "$1" in
  *) exec 7>>"$APPLOGS/${APP}.log" 8>&7 ;;
  esac
 fi
-	_con "
+    _con "
 @[`_date`] cmd=$1 app=$APP "
-	case "$1" in
+    case "$1" in
 'start')# =========
      _con "is starting...
 "
-	[ -f "pid.$APP" ] && {
-		[ 'console' = "$APPSTART" ] || _exit 2
-		_err "
+    [ -f "pid.$APP" ] && {
+        [ 'console' = "$APPSTART" ] || _exit 2
+        _err "
 pid.$APP file is here, must 'stop' process first
 "
-		_con "stop and start(y/n)?"
-		read YES && {
-			[ 'y' = "$YES" ] && {
-				set -- '' 'stop' "$@"
-			} || {
-				_con "
+        _con "stop and start(y/n)?"
+        read YES && {
+            [ 'y' = "$YES" ] && {
+                set -- '' 'stop' "$@"
+            } || {
+                _con "
 cancel '$1'
 "
-				_exit 0
-			}
-		} || _exit 2
-	} || {
-		do_sync 1>&7 2>&8 8>&- &
-		CHPID=$!
-		echo "$CHPID" >"pid.$APP"
-		_con "$CHB
+                _exit 0
+            }
+        } || _exit 2
+    } || {
+        do_sync 1>&7 2>&8 8>&- &
+        CHPID=$!
+        echo "$CHPID" >"pid.$APP"
+        _con "$CHB
 $CHPID is pid of running daemon, saved in file: pid.$APP$CHE
 
 ${CB}Окно не закрывать до выполнения 'stop'a!!!$CE
 "
-	}
+    }
 ;;
 'stop')# =========
 
-	[ -f "pid.$APP" ] || {
-		[ 'console' = "$APPSTART" ] || _exit 3
-		_err "
+    [ -f "pid.$APP" ] || {
+        [ 'console' = "$APPSTART" ] || _exit 3
+        _err "
 
 No file pid.$APP found, nothing to 'stop', clearing 'lftp' anyway.
 "
-		opt=`ps $PS_OPTS | sed -n '
+        opt=`ps $PS_OPTS | sed -n '
 /lftp[[:blank:]]*$/s/^[[:blank:]]*\([[:digit:]]*\).*$/\1/p
 '`
-		if [ "$opt" ]
-		then _con "lftp to kill: $opt
+        if [ "$opt" ]
+        then _con "lftp to kill: $opt
 "
-			while [ -e "$DDIR/go" -o -e "$IDIR/og" ]
-			do _con "
+            while [ -e "$DDIR/go" -o -e "$IDIR/og" ]
+            do _con "
 waitng for 'go' to be done
 " && sleep 1
-			done
-			kill $opt || :
-		fi
-		_exit 3
-	}
-	read CHPID < "pid.$APP" && rm -f "pid.$APP"
+            done
+            kill $opt || :
+        fi
+        _exit 3
+    }
+    read CHPID < "pid.$APP" && rm -f "pid.$APP"
 
-	if [ 'console' = "$APPSTART" ]
-	then _con "\033[1m
+    if [ 'console' = "$APPSTART" ]
+    then _con "\033[1m
 Hey!
 About to kill pid.$APP=$CHPID, continue (y/n)? \033[0m"
-		read YES || _exit 4
-	else YES='y'
-	fi
-	if [ 'y' = "$YES" ]
-	then kill $CHPID || :
-		opt=`ps $PS_OPTS | sed -n '
+        read YES || _exit 4
+    else YES='y'
+    fi
+    if [ 'y' = "$YES" ]
+    then kill $CHPID || :
+        opt=`ps $PS_OPTS | sed -n '
 /lftp[[:blank:]]*$/s/^[[:blank:]]*\([[:digit:]]*\).*$/\1/p
 '`
-		if [ "$opt" ]
-		then _con "lftp to kill: $opt
+        if [ "$opt" ]
+        then _con "lftp to kill: $opt
 "
-			while [ -e "$DDIR/go" -o -e "$IDIR/og" ]
-			do _con "
+            while [ -e "$DDIR/go" -o -e "$IDIR/og" ]
+            do _con "
 waitng for 'go' and 'og' to be done
 " && sleep 1
-			done
-			kill $opt || :
-		fi
-	else _exit 0
-	fi
+            done
+            kill $opt || :
+        fi
+    else _exit 0
+    fi
 ;;
 'stat')# =========
-	_con "
+    _con "
 "
 [ -f "pid.$APP" ] && {
-	read CHPID < "pid.$APP" && {
-		kill -0 "$CHPID" && {
-			 _con "
+    read CHPID < "pid.$APP" && {
+        kill -0 "$CHPID" && {
+             _con "
 $CHPID is running OK
 
 "
-		} || _exit 5
-	} || _exit 6
+        } || _exit 5
+    } || _exit 6
 } || _exit 7
 ;;# =========
 'tailog' | 'devstart')# =========
@@ -307,7 +307,7 @@ _con "not implemented
 "
 _exit 11
 ;;# =========
-	esac
+    esac
 exec 7>&- 8>&-
 
 shift 1
